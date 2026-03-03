@@ -99,7 +99,7 @@ export const sendOTPToUser = async (req, res) => {
     console.error('Send OTP error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to send OTP. Check SMTP configuration.',
+      message: 'Failed to send OTP. Check email configuration.',
       error: error.message,
     });
   }

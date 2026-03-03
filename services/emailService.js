@@ -1,31 +1,21 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-import dns from 'dns';
+// Initialize Resend client with API key
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Force Node.js to prefer IPv4 over IPv6. 
-// Render free tier does not support outbound IPv6, which causes ENETUNREACH for Gmail SMTP.
-dns.setDefaultResultOrder('ipv4first');
-
-// Create transporter using SMTP config from env
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true, // true for 465, enforces TLS
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+// Sender address — use a verified domain in production,
+// or 'onboarding@resend.dev' for testing
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
 /**
- * Send OTP email with styled HTML template
+ * Send OTP email with styled HTML template via Resend (HTTPS, port 443)
  */
 export const sendOTP = async (email, otp, fullName) => {
-  const mailOptions = {
-    from: `"MongoAssist" <${process.env.SMTP_USER}>`,
+  const { data, error } = await resend.emails.send({
+    from: `MongoAssist <${FROM_EMAIL}>`,
     to: email,
     subject: '🔐 MongoAssist — Verification Code',
     html: `
@@ -73,21 +63,13 @@ export const sendOTP = async (email, otp, fullName) => {
         </div>
       </div>
     `,
-  };
+  });
 
-  return transporter.sendMail(mailOptions);
-};
-
-/**
- * Verify SMTP connection is working
- */
-export const verifyTransporter = async () => {
-  try {
-    await transporter.verify();
-    console.log('✅ SMTP connection verified');
-    return true;
-  } catch (error) {
-    console.error('❌ SMTP connection failed:', error.message);
-    return false;
+  if (error) {
+    console.error('❌ Resend email error:', error);
+    throw new Error(error.message || 'Failed to send email via Resend');
   }
+
+  console.log('✅ Email sent via Resend, id:', data?.id);
+  return data;
 };
