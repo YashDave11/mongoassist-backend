@@ -3,6 +3,12 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+import dns from 'dns';
+
+// Force Node.js to prefer IPv4 over IPv6. 
+// Render free tier does not support outbound IPv6, which causes ENETUNREACH for Gmail SMTP.
+dns.setDefaultResultOrder('ipv4first');
+
 // Create transporter using SMTP config from env
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
